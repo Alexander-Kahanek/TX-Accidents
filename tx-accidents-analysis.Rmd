@@ -1,0 +1,371 @@
+---
+title: "Texas Accidents Group Analysis"
+author: "Kumbaya"
+date: "4/7/2020"
+output: 
+    html_document:
+        number_sections: true
+        toc: true
+        theme: cosmo
+        highlight: tango
+        code_folding: hide
+---
+
+# Welcome
+
+blah blah blah, fill in when everyone is done..
+
+    DATA SOURCE:
+    ...
+    
+# A quick overview
+
+```{r}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+```{r}
+####### ALL LIBRARIES USED ###########
+
+#declare libraries
+options(stringsAsFactors = FALSE)
+library(tidyr)
+library(dplyr)
+library(highcharter)
+```
+
+```{r}
+######### READING IN CLEANED DATA ##########
+
+#reading in clean data
+raw <- read.csv("cleaned-accidents.csv")
+
+raw <- raw %>% 
+    separate(Start_Time, c("Start_Date", "Start_Time"), sep = " ") %>% 
+  separate(End_Time, c("End_Date", "End_Time"), sep = " ") %>% 
+  mutate(
+    wday = weekdays(as.Date(Start_Date, format = "%Y-%m-%d"))
+  )
+
+##### GETTING DALLAS DATA #######
+
+#list for counties
+dallas_plano_irving <- c("Collin", "Dallas", "Denton", "Ellis", "Hunt", "Kaufman", "Rockwall")
+
+dfw <- data.frame() #create new variable
+
+for (county in dallas_plano_irving){ #loop to grab all
+  dfw <- raw %>% 
+  subset(County == county) %>% 
+    bind_rows(dfw)
+}
+```
+
+```{r}
+####### GENERAL SUMMARIES #######
+
+#getting counts for all cities
+city_count <- raw %>% 
+  group_by(City) %>% 
+  summarise(
+    accidents = n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting counts for all counties
+county_count <- raw %>% 
+  group_by(County) %>% 
+  summarise(
+    accidents = n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting counts for all dates
+date_count <- raw %>% 
+  group_by(Start_Date) %>% 
+  summarise(
+    accidents = n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting counts for all severities
+severity_count <- raw %>% 
+  group_by(Severity) %>% 
+  summarise(
+    accidents = n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting counts for all weekdays
+weekday <- raw %>% 
+  group_by(wday) %>% 
+  summarise(
+    accidents = n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting missing date values
+date_count <- date_count %>% 
+  mutate(
+    Date = as.Date(Start_Date, format="%Y-%m-%d")
+  )
+
+#first and last day of data
+min_d<- min(date_count$Date)
+max_d<- max(date_count$Date)
+```
+
+Lets start with taking a look at a general overview of the data.
+
+
+## Overview of Severities
+
+
+```{r}
+##### TREEMAP FOR SEVERITY ########
+hc <- severity_count %>% 
+  hchart(type="treemap", hcaes(x=paste("Severity:", Severity, sep=" "), value=accidents, color=accidents)) %>% 
+  hc_colorAxis(minColor = "#F4D03F", maxColor="red") %>% 
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by Severity, for Texas",
+           align = "left") %>%
+  hc_subtitle(text = "color corrosponds to the number of accidents",
+           align = "left") %>%
+  hc_tooltip(formatter = JS("function(){
+                            return (' Severity: ' + this.point.Severity + ' <br> # Accidents: ' + this.point.accidents)}"))
+
+hc
+```
+
+This Treemap can tell us a few things about the Severity Category in the data, for example:
+
+* There are 4 Severity levels in the data,
+  + the Severity ranges on a scale of 1 - 4,
+    - Severity 1: 120 accidents
+    - Severity 2: 215027 accidents
+    - Severity 3: 79467 accidents
+    - Severity 4: 3448 accidents
+    
+* 98% of the recorded accidents are categorized as Severity level 2 or 3.
+  + 72% of the recorded accidents are level 2, respectively.
+  + 26% of the recorded accidents are level 3, respectively.
+
+* 1.1% of the recorded accidents are categorized as level 4, the most severe accident.
+
+* While less than 0.04% of the recorded accidents are considered a Severity level of 1.
+  + This could be due to an underreporting of these accidents.
+  
+* The total number of recorded accidents in Texas is 298062 accidents.
+
+
+## Overview of Counties
+
+
+```{r}
+#### TREEMAP FOR COUNTY COUNT ######
+hc <- county_count %>% 
+  slice(1:8) %>% 
+  hchart(type = "bar",
+         hcaes(x=County, y=accidents, color=County)) %>%
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by County, in Texas",
+           align = "left") %>% 
+  hc_tooltip(formatter = JS("function(){
+                            return (' County: ' + this.point.County + ' <br> # Accidents: ' + this.point.accidents + ' <br> Severity: ' + this.point.mean_sev.toFixed(2))}"))
+
+hc
+```
+
+From the above, we can see the four most accident prone Counties:
+
+* Harris County, TX:
+  + 99023 recorded accidents
+  + mean severity level of 2.24
+
+* Dallas County, TX:
+  + 68149 recorded accidents
+  + mean severity level of 2.41
+
+* Travis County, TX:
+  + 63603 recorded accidents
+  + mean severity level of 2.28
+  
+* Bexar County, TX:
+  + 22206 recorded accidents
+  + mean severity level of 2.28
+  
+The graph shows the disparity of the top three Counties and the preceeding COunties. With the third highest County, Travis COunty, having 41397 more accidents than the fourth highest County, Bexar County.
+* Travis County (22206 accidents)
+* Bexar County (22206 accidents)
+
+
+## Overview of Cities
+
+
+```{r}
+#### TREEMAP FOR CITY COUNTS ######
+hc <- city_count %>% 
+  slice(1:8) %>% 
+  hchart(type = "treemap",
+         hcaes(x=City, value=accidents, color=mean_sev)) %>%
+  hc_colorAxis(minColor = "#F4D03F", maxColor="red") %>%
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by City, in Texas",
+           align = "left") %>% 
+  hc_subtitle(text = "color corrosponds to the mean severity level",
+           align = "left") %>%
+  hc_tooltip(formatter = JS("function(){
+                            return (' City: ' + this.point.City + ' <br> # Accidents: ' + this.point.accidents + ' <br> Severity: ' + this.point.mean_sev.toFixed(2))}"))
+
+hc
+```
+
+From the graph, The five most accident prone Cities in Texas are:
+
+* Houston, TX
+  + 93245 recorded accidents
+  + mean severity level of 2.23
+  
+* Austin, TX
+  + 58553 recorded accidents
+  + mean severity level of 2.13
+  
+* Dallas, TX
+  + 57823 recorded accidents
+  + mean severity level of 2.38
+  
+* San Antonio, TX
+  + 21613 recorded accidents
+  + mean severity level of 2.27
+  
+* El Paso, TX
+  + 9352 recorded accidents
+  + mean severity level of 2.12
+
+Again, we are seeing a huge disparity of the top three Cities and the preceeding Cities.
+
+* Houston, TX has 31.2% of the total accidents in Texas.
+* Austin, TX has 19.6% of the total accidents in Texas.
+* Dallas, TX has 19.3% of the total accidents in Texas.
+
+These three cities combined have 70% of the total recorded accidents. meaning the other 710 Cities make up for the remaining 30%.
+
+
+## Complete Timeline
+
+```{r}
+library(padr)
+
+#get all dates
+alldates <- seq(min_d, max_d,1)
+
+#take out dates that occur in data
+alldates <- alldates %>% 
+  subset(!(alldates %in% date_count$Date))
+
+#create dataframe of all dates, with 0 accidents
+alldates <- data.frame(Date=alldates, accidents=0, mean_sev=0)
+
+#combining missing dates with old data
+total <- alldates %>% 
+  bind_rows(date_count) %>% 
+  subset(select = c(Date, accidents, mean_sev)) %>% 
+  arrange(Date) %>% 
+  mutate(
+    wday = weekdays(Date) #get weekdays
+  )
+
+total %>% 
+  hchart(type="column", hcaes(x=Date, y=accidents), color="black") %>% 
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by Date",
+           align = "left") %>% 
+  hc_yAxis(title = list(text = "# of Accidents")) %>% 
+  hc_xAxis(title = "", type = "datetime", dateTimeLabelFormats = list(day = '%Y/%m')) %>% 
+  hc_tooltip(formatter = JS("function(){
+                            return (' Date: ' + this.point.Date)+ ' <br> Weekday: ' + this.point.wday + ' <br> # Accidents: ' + this.point.accidents + ' <br> Mean Severity: ' + this.point.mean_sev.toFixed(2)}"))
+```
+
+This graph shows exactly how much data is in this dataframe, as well as any patterns in the number of Accidents. For example,
+
+* The graph seems to show high variation throughout the individual weeks,
+  + this can be tested by looking at the accidents per weekday.
+
+* There only seems to be one major dip in the data from May 24, 2017 to June 1, 2017.
+
+* There might be a small decline in the number of accidents as over time,
+  + more analysis on this will need to be done to see if this is true.
+
+## Pearsons r and r^2
+
+Lets see if Severity, Distance of Accidents, and Temperature are correlated! To do this, we need use use pearsons r and pearsons r squared.
+
+First, lets take a look at pearsons r.
+
+```{r}
+raw_cor <- raw %>% 
+  subset(!is.na(Severity)) %>% 
+  subset(!is.na(Distance.mi.)) %>%
+  subset(!is.na(Temperature.F.)) %>%
+  subset(select = c(Severity, Distance.mi., Temperature.F.)) %>% 
+  as.matrix() %>% 
+  cor()
+
+raw_cor
+```
+
+Pearsons r cant tell us a lot, however we can gather a few bits of information:
+
+* Severity and Temperature appear to be negatively correlated.
+  + The pearsons r value is negative, telling us that as the Severity declines, the Temperature Rises.
+    - This might suggest that the colder the day, the more sever an accident might be.
+
+* Distance and Temperature are also negatively correlated.
+  + Again, suggesting that as the Temperature gets colder, the distance of an accident might be lower.
+  
+* Severity and Distance have a positive correlation.
+  + This would suggest that as the distance of an accident increases, the severity would also increase.
+  
+Lets check how well correlated these factors are, we can do this simply by just squaring the above correlation.
+
+```{r}
+#lets take a look at the severity matched with the start time
+raw_cor_2 <- raw_cor %>% 
+  '^'(2) %>% 
+    round(5) %>% #round
+  hchart() %>% #graph
+  hc_colorAxis(minColor = "#F4D03F", maxColor="red") %>%
+  hc_add_theme(hc_theme_flat()) %>%
+  hc_title(text = "Pearsons r squared matchup",
+           align = "left") %>% 
+  hc_subtitle(text = "For TX accidents",
+              align = "left") %>% 
+   hc_xAxis(categories = list("Severity", "Distance of Accident", "Temperature")) %>% 
+  hc_yAxis(categories = list("Severity", "Distance of Accident", "Temperature"))%>% 
+   hc_legend(align = "left") %>% 
+  hc_plotOptions(
+           series = list(
+             boderWidth = 0,
+             dataLabels = list(enabled = TRUE)))
+
+raw_cor_2
+```
+
+All of the r squared values are very low, with the highest being Severity and Distance of the Accident (0.01977). This tells us that only ~1.9% of the Severity samples can be explained by the Distance of the Accident.
+
+As all of these r^2 values are very low, this suggests that none of the factors can be explained by the other.
+* ie, the Distance an Accident occurs has little to do with the Severity of the Accident.
+  + The same can be said for all of the other matchups as well.
+
+////////////////////////
+
+FILL IN REST FROM EVERYBODIES ANALYSIS
+
+////////////////////////
+
+# Alex Kahanek - Analysis of Weekdays
