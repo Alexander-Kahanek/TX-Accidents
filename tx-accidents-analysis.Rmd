@@ -369,3 +369,9 @@ FILL IN REST FROM EVERYBODIES ANALYSIS
 ////////////////////////
 
 # Alex Kahanek - Analysis of Weekdays
+
+PLEASE START HERE
+
+```{r}
+###### CLICK THE MIDDLE BUTTON ON THE RIGHT TO RUN ALL PREVIOUS CODE ############
+```
