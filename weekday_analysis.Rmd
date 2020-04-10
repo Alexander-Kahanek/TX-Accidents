@@ -1,0 +1,225 @@
+---
+title: "Analysis of Weekdays"
+author: "Alexander Kahanek"
+date: "4/10/2020"
+output: html_document
+---
+
+# Analysis of Weekdays - Alexander Kahanek
+
+In this Analysis, I will dive into the differences of the recorded accidents according to the day of the week!
+
+
+```{r}
+### PREVIOUS LIBRARIES ####
+options(stringsAsFactors = FALSE)
+library(tidyr)
+library(dplyr)
+library(highcharter)
+##### ADDED LIBRARIES #####
+library(lubridate)
+library(padr)
+library(tm)
+library(DT)
+###########################
+#### CLEARING VARIABLES ###
+rm(list = ls(all.names = TRUE))
+
+### GETTING A NEW RAW
+# This is to make merging the analysis into the main file easier
+raw <- read.csv("cleaned-accidents.csv")
+
+raw <- raw %>% 
+    separate(Start_Time, c("Start_Date", "Start_Time"), sep = " ") %>% 
+  separate(End_Time, c("End_Date", "End_Time"), sep = " ") %>% 
+  mutate(
+    wday = wday(Start_Date, label=TRUE)
+  )
+
+#getting counts for all dates
+date_count <- raw %>% 
+  group_by(Start_Date) %>% 
+  dplyr::summarise(
+    accidents = dplyr::n(),
+    mean_sev = mean(Severity)
+  ) %>% 
+  arrange(-accidents)
+
+#getting missing date values
+date_count <- date_count %>% 
+  mutate(
+    Date = as.Date(Start_Date, format="%Y-%m-%d")
+  )
+
+#first and last day of data
+min_d<- min(date_count$Date)
+max_d<- max(date_count$Date)
+
+#### PLOTTING ######
+hc <- date_count %>% 
+  subset(select = c(Date, accidents, mean_sev)) %>% 
+  mutate(
+    wday = wday(Date, label=TRUE) #get weekdays
+  ) %>% 
+  group_by(wday) %>% 
+  dplyr::summarise(
+    accidents = sum(accidents),
+    mean_sev = mean(mean_sev)
+  ) %>% 
+  ungroup() %>% 
+  hchart(type= "bar", hcaes(x=wday, y=accidents)) %>% 
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by Day of Week",
+           align = "left") %>% 
+  hc_yAxis(title = list(text = "# of Accidents")) %>% 
+  hc_xAxis(title = list(text = "")) %>% 
+  hc_tooltip(formatter = JS("function(){
+                            return (' Day of Week: ' + this.point.wday + ' <br> # Accidents: ' + this.point.accidents + ' <br> Mean Severity: ' + this.point.mean_sev.toFixed(2))}"))
+
+#call plot
+hc
+```
+
+As shown, there is a great desperity between the Monday - Friday, and Saturday/Sunday.
+
+* While Monday to Friday has a range of 3,346 accidents. Monday to Sunday has a range of 44,344 accidents. 
+  + Monday has 18.7% of the total accidents.
+  + Tuesday has 18.5% of the total accidents.
+  + Wednesday has 18.5% of the total accidents.
+  + Thursday has 17.9% of the total accidents.
+  + Friday has 17.6% of the total accidents.
+  + Saturday has 4.7% of the total accidents.
+  + Sunday has 3.8% of the total accidents.
+  
+While this huge drop is apparent on the weekend, one reason why might this occur is; there are less people are working, causing less people to be on the roads.
+
+Now lets take a look into if this has any differences throughout the years.
+
+```{r}
+#### PLOTTING #######
+
+date_count %>% 
+  subset(select = c(Date, accidents, mean_sev)) %>% 
+  mutate(
+    Year = as.numeric(format(date_count$Date, "%Y"))
+  ) %>% 
+  mutate(
+    wday = wday(Date, label=TRUE) #get weekdays
+  ) %>% 
+  group_by(wday,Year) %>% 
+  dplyr::summarise(
+    accidents = sum(accidents),
+    mean_sev = mean(mean_sev)
+  ) %>% 
+  ungroup() %>% #plot starts below
+  hchart(type= "bar", hcaes(x=wday, y=accidents, group = Year)) %>% 
+  hc_add_theme(hc_theme_flat()) %>% 
+  hc_title(text = "Total Accidents by Day of Week",
+           align = "left") %>% 
+  hc_yAxis(title = list(text = "# of Accidents")) %>% 
+  hc_xAxis(title = list(text = "")) %>% 
+  hc_tooltip(formatter = JS("function(){
+                            return (' Year: ' + this.point.Year + '<br>  Day of Week: ' + this.point.wday + ' <br> # Accidents: ' + this.point.accidents + ' <br> Mean Severity: ' + this.point.mean_sev.toFixed(2))}"))
+```
+  
+    You can de-select anything in the legend to get a closer look at the years.
+  
+Here we can see a significant drop in the number of accidents in 2016, this is due to not having the complete year. Remember, this dataset starts on July 14, 2016.
+
+Despite this, we still see a massive drop in accidents occuring on a Saturday or a Sunday.
+  
+Lets dive into the text data to see if there are any indcations to why there is a massive drop on Saturday and Sunday.
+
+```{r}
+####### FUNCTION TO GRAB HIGHWAYS #######
+get_hwy <- function(data){
+  new_data <- data.frame()
+  #get temp year
+  temp <- data
+    
+    #seperate text data into words, by weekday
+  new_data <- stack(tapply(temp$Description, temp$wday, function(x) scan(text=x, what=''))) %>% 
+      mutate(
+        values = ifelse(grepl(values, pattern="\\-"), removePunctuation(values, preserve_intra_word_dashes = TRUE), NA)
+      ) %>% 
+      mutate( #remove blank values
+        values = ifelse(values == "", NA, values)
+      ) %>% 
+      subset(!is.na(values)) %>% #delete NA's
+      group_by(ind) %>% 
+      mutate( #toupper all letters
+        values = toupper(values)
+      ) %>% 
+      dplyr::rename( #rename
+        "words" = values,
+        "wday" = ind
+      ) %>% 
+      bind_rows(new_data) #bind back
+  
+  return(new_data)
+}
+
+
+#get text data
+text_wday <- raw %>% 
+  subset(select = c(wday, Description, Start_Date)) %>% 
+  mutate(
+    year = as.numeric(format(as.Date(raw$Start_Date,format = "%Y-%m-%d"), "%Y"))
+  ) %>% 
+  subset(select = -c(Start_Date)) %>% 
+  get_hwy()
+
+#subset into week
+wk = c("Mon", "Tue", "Wed", "Thu", "Fri")
+week <- data.frame()
+for(day in wk){
+  week <- text_wday %>% 
+  subset(wday == day) %>% 
+    bind_rows(week)
+}
+week <- week %>% 
+  subset(select = words) %>% 
+  dplyr::count(words) %>% 
+  arrange(-n) %>% 
+  mutate(
+    "weekday hwy" = words,
+    "weekday count" = n,
+    rank = 1:nrow(.)
+  ) %>% 
+  subset(select = c("weekday hwy", "weekday count", "rank"))
+
+#subset into weekend
+wkd = c("Sat", "Sun")
+weekend <- data.frame()
+for(day in wkd){
+  weekend <- text_wday %>% 
+  subset(wday == day) %>% 
+    bind_rows(weekend)
+}
+weekend <- weekend %>% 
+  subset(select = words) %>% 
+  dplyr::count(words) %>% 
+  arrange(-n) %>% 
+  mutate(
+    "weekend hwy" = words,
+    "weekend count" = n,
+    rank = 1:nrow(.)
+  ) %>% 
+  subset(select = c("weekend hwy", "weekend count", "rank"))
+
+#combining datasets for a data table
+week %>% 
+  slice(1:80) %>% 
+  bind_cols(weekend %>% 
+              slice(1:80)) %>% 
+  subset(select = -c(rank1)) %>% 
+  datatable()
+```
+
+    This is a lookup table, you can use this to search through the top 80 ranks!
+
+These are the top 10 accident prone highways for the weekdays and the weekend!
+
+We can see that I-35 is, by far, the worst highway in texas. Besides I-35, the only highway that stays on the same rank is I-45.
+
+Every other highway tends to change ranks, which could suggest that certain highways get proportionally less traffic on the weekdays, as opposed to the weekends, or vice versa!
