@@ -309,7 +309,7 @@ This graph shows exactly how much data is in this data set, as well as any patte
 * There might be a small decline in the number of accidents over time,
   + more analysis on this will need to be done to see if this is true.
 
-## Pearsons r and r^2
+## Pearsons r and r^2^
 
 Lets see if Severity, Distance of Accidents, and Temperature are correlated! To do this, we need use use pearsons r and pearsons r squared.
 
@@ -366,7 +366,7 @@ raw_cor_2
 
 All of the r squared values are very low, with the highest being Severity and Distance of the Accident (0.01977). This tells us that only ~1.9% of the Severity samples can be explained by the Distance of the Accident.
 
-As all of these r^2 values are very low, this suggests that none of the factors can be explained by the other.
+As all of these r^2^ values are very low, this suggests that none of the factors can be explained by the other.
 
 * ie, the Distance an Accident occurs has little to do with the Severity of the Accident.
   + The same can be said for all of the other matchups as well.
