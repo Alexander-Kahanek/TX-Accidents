@@ -3,12 +3,13 @@ title: "Texas Accidents Group Analysis"
 author: "Kumbaya"
 date: "4/7/2020"
 output: 
-    html_document:
-        number_sections: true
-        toc: true
-        theme: cosmo
-        highlight: tango
-        code_folding: hide
+    rmdformats::material:
+      code_folding: hide
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
 ---
 
 # Welcome
@@ -20,11 +21,9 @@ blah blah blah, fill in when everyone is done..
     
 # A quick overview
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
-```
 
-```{r}
 ####### ALL LIBRARIES USED ###########
 
 #declare libraries
@@ -38,9 +37,7 @@ library(lubridate)
 library(padr)
 library(tm)
 library(DT)
-```
 
-```{r}
 ######### READING IN CLEANED DATA ##########
 
 #reading in clean data
@@ -65,9 +62,7 @@ for (county in dallas_plano_irving){ #loop to grab all
   subset(County == county) %>% 
     bind_rows(dfw)
 }
-```
 
-```{r}
 ####### GENERAL SUMMARIES #######
 
 #getting counts for all cities
