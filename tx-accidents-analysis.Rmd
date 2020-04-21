@@ -18,7 +18,14 @@ blah blah blah, fill in when everyone is done..
 
     DATA SOURCE:
     ...
-    
+
+```{r}
+#reading in clean data
+raw <- read.csv("cleaned-accidents.csv")
+
+head(raw)
+```
+
 # A quick overview
 
 ```{r, warning=FALSE, message=FALSE}
@@ -31,6 +38,7 @@ options(stringsAsFactors = FALSE)
 library(tidyr)
 library(dplyr)
 library(highcharter)
+library(plotly)
 
 ## Added by Alex Kahanek
 library(lubridate)
@@ -39,9 +47,6 @@ library(tm)
 library(DT)
 
 ######### READING IN CLEANED DATA ##########
-
-#reading in clean data
-raw <- read.csv("cleaned-accidents.csv")
 
 raw <- raw %>% 
     separate(Start_Time, c("Start_Date", "Start_Time"), sep = " ") %>% 
@@ -366,10 +371,113 @@ As all of these r^2^ values are very low, this suggests that none of the factors
 * ie, the Distance an Accident occurs has little to do with the Severity of the Accident.
   + The same can be said for all of the other matchups as well.
 
+# Analysis of Day and Night
 
-# Analysis of Weekdays - Alexander Kahanek
+The goal is to see if there are more accident during days or nights time.
+
+```{r}
+rm(list = ls(all.names = TRUE))
+
+#reading in clean data
+raw <- read.csv("cleaned-accidents.csv")
+
+raw <- raw %>% 
+    separate(Start_Time, c("Start_Date", "Start_Time"), sep = " ") %>% 
+  separate(End_Time, c("End_Date", "End_Time"), sep = " ") %>% 
+  mutate(
+    wday = weekdays(as.Date(Start_Date, format = "%Y-%m-%d"))
+  )
+
+top_fifty <- raw %>%
+  group_by(City,Distance.mi., Sunrise_Sunset) %>%
+  summarise(
+    n= n()
+  )
+
+day <- top_fifty %>%
+  subset(Sunrise_Sunset == "Day") %>%
+  arrange(-n)
+
+day <- day[1:15,]
+
+night <- top_fifty %>%
+  subset(Sunrise_Sunset == "Night") %>%
+  arrange(-n)
+night<-night[1:15,]
+
+topfifteen<-raw%>%
+  group_by(City)%>%
+  summarize(n=n())%>%
+  arrange(-n)
+topfifteen<- topfifteen[1:15,]
+sun<-raw%>%
+  filter(City%in% topfifteen$City)
+
+gg <- ggplot(sun,aes(x=City,y=Distance.mi.,fill=Sunrise_Sunset))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x = element_text(angle=-45, hjust=-0.1))
+gg
+```
+
+Dase on this plots we can see that accidents in the United States happens most likely during the Day beacuse the roads are busy and according to the National Highway Traffic Safety Administration (NHTSA), most accidents tend to occur between 3 pm and 6 pm. This is often because of the high volume of vehicles on the road.
+
+# Analysis of Weather and Severity
+
+```{r}
+rm(list = ls(all.names = TRUE))
+
+accidents<- read.table('cleaned-accidents.csv',header = TRUE, sep = ',')
+
+df<-accidents
+top_fifty <-df %>%
+  group_by(County) %>%
+  summarise(
+    n= n()
+  )
+
+#Severity in the city of Denton with a density and a histogram chart
+
+denton <- df %>%
+  subset(City == "Denton")
+
+accidents1 <- ggplot(denton, aes(Severity))
+accidents1 + geom_density() + labs(x = "Severity", y = "Range")
+```
+
+```{r}
+accidents1 <- ggplot(denton, aes(Severity))
+accidents1 + geom_histogram(binwidth = 0.4) + labs(x = "Severity", y = "Range")
+```
+
+Both of the plots show basically the same thing. One of them is a density plot and the other is a histogram.
+This histogram is a very easy plot to understand. you can see which serverity is the highest by just looking at the chart.
+The denisty plot visualises the distribution of data over a continuous interval or time period.
+The plot only uses Denton and how severity each accident is in that city.As you can see in the plot that the severity is averaging around 3.
+
+## How temperature matches with the serverity of eatch county
+
+```{r}
+county <- df %>%
+  subset(City == "Fort Worth")
+
+ggplot(data =county )+
+  geom_point(mapping=aes(Temperature.F., Severity, color = County))
+
+ggplot(data = county)+
+  geom_smooth(mapping=aes(x=Temperature.F., y=Severity,))
+
+#pairs(~Severity+Description+Weather_Condition+Temperatur#e.F.,data=county,main="Scatterplot Matrix", cex= .25)
+```
+
+Here are three chart showing the same data on how weather can affeact the serverity of the accidents
+The point chart shows you two different county and how each county serverity is during each temperature. 
+Same goes with the smooth plot, This one is a little easier to see because it only shows one city.
+From the look of each map temperature do play a roll in the severity of each accident.
+
+# Analysis of Weekdays
 
 In this Analysis, I will dive into the differences of the recorded accidents according to the day of the week!
+
 
 
 ```{r}
