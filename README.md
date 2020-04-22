@@ -1,14 +1,10 @@
 # TX-Accidents
-Download both the .html file and the .rmd file
+The HTML file is the final output delivery.
 
-The HTML file will be what the final delivery will look like, please use this as a 'guide' on how to format your analysis.
+The rmd file is what the project was created on.
 
-The RMD file is where everything will be coded/written. If you knit this file, you will get a HTML file with the output.
+The R script is a short script I made to help clean the data before loading it into the rmd for analysis.
 
 GOAL
------
-Write a small Analysis over an aspect of the data you find interesting. For example, I have chosen to write over the number of accidents for each weekday, and will do an analysis over this.
-
-There are a few interesting things I pointed out in the beginning summary, if you need help feel free to reach out!
-
-Also, please write the analysis at the bottom of the .rmd file, and make sure that everything runs properly so that we can stitch together everybodies small analysis.
+---------------
+The goal of this project was to work as a team to create a cohesive Exploratory Data Analysis. We focused the analysis around the patternning of accident occurrence between weekdays and weekends. This was used to analyze which highways are effected the most between these two categories of days. We also created an interactive map that helps visualise the accidents in Texas that occured in 2019, to help understand the patterns of these accidents. 
