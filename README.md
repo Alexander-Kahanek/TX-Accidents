@@ -1,9 +1,14 @@
 # TX-Accidents
-The HTML file is the final output delivery.
 
-The rmd file is what the project was created on.
+This project was created by Alexander Kahanek and Austyn McLaughlin
 
-The R script is a short script I made to help clean the data before loading it into the rmd for analysis.
+* The HTML file is the final output delivery. [This can be seen here...](https://alexander-kahanek.github.io/project/accidents.html)
+
+* The rmd file is what the project was coded and created on.
+
+* The R script is a short script I made to help clean the data before loading it into the rmd for analysis.
+
+* The raw data is not included, as it is too large for github, however it can be found on kaggle [here...](https://www.kaggle.com/sobhanmoosavi/us-accidents)
 
 GOAL
 ---------------
