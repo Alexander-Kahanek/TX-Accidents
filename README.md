@@ -1,5 +1,7 @@
 # TX-Accidents
 
+<p align="center"><img src="https://alexander-kahanek.github.io/assets/img/texas-accidents.png"></p>
+
 This project was created by Alexander Kahanek and Austyn McLaughlin
 
 * The HTML file is the final output delivery. [This can be seen here...](https://alexander-kahanek.github.io/project/accidents.html)
